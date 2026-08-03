@@ -1,0 +1,241 @@
+:root {
+    --bg-color: #0a0a0a;
+    /* Dark neutral background */
+    --text-color: #ffffff;
+    --border-color: #333;
+    --header-height: 60px;
+    --overlay-bg: rgba(0, 0, 0, 0.9);
+    --transition-speed: 0.3s;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    overflow-x: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    animation: pageIn 0.6s ease-out;
+}
+
+@keyframes pageIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Header */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 2rem;
+    height: var(--header-height);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
+    pointer-events: none;
+}
+
+.logo {
+    font-weight: 500;
+    letter-spacing: -0.5px;
+    font-size: 1.1rem;
+    pointer-events: auto;
+}
+
+.header-nav {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    pointer-events: auto;
+}
+
+.nav-btn,
+.contact-btn {
+    text-decoration: none;
+    color: var(--text-color);
+    font-size: 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    transition: all var(--transition-speed) ease;
+    backdrop-filter: blur(5px);
+}
+
+.nav-btn:hover,
+.contact-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.nav-btn {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Video Grid */
+main#video-grid {
+    display: grid;
+    /* 7 columns by default for desktop */
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: 50vh;
+    width: 100%;
+    height: 100vh;
+    padding-top: 0;
+}
+
+.video-tile {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border: 4px solid var(--border-color);
+    cursor: pointer;
+    background-color: #000;
+    transition: border-color var(--transition-speed) ease;
+    will-change: border-color;
+    /* Fade-in animation on scroll */
+    opacity: 0;
+    transform: translateY(12px);
+    transition: border-color var(--transition-speed) ease,
+        opacity 0.5s ease,
+        transform 0.5s ease;
+}
+
+.video-tile.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.video-tile video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), filter 0.3s ease;
+    will-change: transform;
+}
+
+/* Hover Effect */
+.video-tile:hover {
+    border-color: rgba(255, 255, 255, 0.8);
+    /* Highlight border */
+    z-index: 2;
+    /* Slight lift for border visibility only */
+    /* No scale on container to prevent "disturbing" layout */
+}
+
+.video-tile:hover video {
+    transform: scale(1.1);
+    /* Zoom content inside */
+    filter: brightness(1.1);
+    /* Subtle brighten */
+}
+
+/* Overlay / Lightbox */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--overlay-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    cursor: zoom-out;
+}
+
+.overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.video-container {
+    width: 90%;
+    max-width: 1200px;
+    max-height: 90vh;
+    aspect-ratio: 16/9;
+    background: #000;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    position: relative;
+}
+
+#overlay-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+#close-overlay {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    /* Adjusted for better visibility */
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 3rem;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    z-index: 1001;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+#close-overlay:hover {
+    opacity: 1;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    main#video-grid {
+        /* Mobile: 2 columns */
+        grid-template-columns: repeat(2, 1fr);
+        grid-auto-rows: 30vh;
+        height: auto;
+        /* Allow scrolling */
+    }
+
+    header {
+        position: absolute;
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    .video-tile {
+        border-width: 2px;
+        /* Slightly thinner on mobile if desired, but user asked for "thicken" generally. Let's keep 4px or reduce slightly for small screens. Let's do 3px. */
+        border-width: 3px;
+    }
+
+    .video-tile:hover video {
+        transform: none;
+        /* Disable zoom on touch */
+        filter: none;
+    }
+}

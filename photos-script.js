@@ -69,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initCards() {
             this.track.innerHTML = '';
             this.cardElements = [];
+            this.lastPos = -9999;
 
             this.images.forEach((src, idx) => {
                 const card = document.createElement('div');
@@ -79,13 +80,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 const img = document.createElement('img');
                 img.src = src;
                 img.alt = `Hauspire Luxury Design Studio - Portfolio Image`;
-                img.loading = 'eager';
+                // Priority loading for initial visible cards (center and adjacent)
+                if (idx === 0 || idx === 1 || idx === this.total - 1) {
+                    img.loading = 'eager';
+                    img.setAttribute('fetchpriority', 'high');
+                } else {
+                    img.loading = 'lazy';
+                    img.setAttribute('fetchpriority', 'low');
+                }
                 img.decoding = 'async';
                 img.draggable = false;
 
+                // Pre-decode adjacent images for zero-lag swipes
+                if (img.decode) {
+                    img.decode().catch(() => {});
+                }
+
                 card.appendChild(img);
 
-                card.addEventListener('click', (e) => {
+                card.addEventListener('click', () => {
                     if (this.hasDragged) return;
                     this.onCardClick(src, idx, this.images);
                 });
@@ -99,8 +112,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (this.cardElements.length > 0) {
                 const rect = this.cardElements[0].getBoundingClientRect();
                 const cardW = rect.width || (this.viewport.clientHeight * 0.84 * (9 / 13));
-                // Card spacing is ~74% of card width for ideal overlap like the reference
                 this.spacing = Math.max(140, cardW * 0.74);
+                this.lastPos = -9999; // force redraw on resize
             }
         }
 
@@ -127,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const diffY = curY - this.startY;
 
                 if (!this.isGestureDecided) {
-                    if (Math.abs(diffX) > 7 || Math.abs(diffY) > 7) {
+                    if (Math.abs(diffX) > 6 || Math.abs(diffY) > 6) {
                         this.isGestureDecided = true;
                         this.isHorizontalSwipe = Math.abs(diffX) >= Math.abs(diffY);
                     }
@@ -155,7 +168,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const onTouchEnd = () => {
                 if (!this.isDragging) return;
                 this.isDragging = false;
-                // Clamp velocity
                 this.velocity = Math.max(-0.35, Math.min(0.35, this.velocity));
                 setTimeout(() => { this.hasDragged = false; }, 60);
             };
@@ -220,15 +232,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.targetPos += this.velocity;
                 this.velocity *= 0.90; // Inertia friction
 
-                if (Math.abs(this.velocity) < 0.001) {
+                if (Math.abs(this.velocity) < 0.0008) {
                     this.velocity = 0;
                     // Gentle spring snap to nearest centered item
                     this.targetPos += (Math.round(this.targetPos) - this.targetPos) * 0.12;
                 }
 
                 // Smooth spring interpolation
-                this.pos += (this.targetPos - this.pos) * 0.18;
+                this.pos += (this.targetPos - this.pos) * 0.20;
             }
+
+            // Optimization: skip DOM writes if change is sub-threshold
+            if (Math.abs(this.pos - this.lastPos) < 0.0001 && !this.isDragging && this.velocity === 0) {
+                return;
+            }
+            this.lastPos = this.pos;
 
             const N = this.total;
 

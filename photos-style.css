@@ -1,4 +1,4 @@
-/* ===== Photos Gallery Styles ===== */
+/* ===== Hauspire Portfolio Gallery — Infinite 3-Card Layout ===== */
 
 :root {
     --bg-color: #0a0a0a;
@@ -8,8 +8,9 @@
     --header-height-mobile: 56px;
     --overlay-bg: rgba(0, 0, 0, 0.94);
     --transition-speed: 0.3s;
-    --accent-glow: rgba(255, 255, 255, 0.15);
     --brand-red: #ff2638;
+    --card-radius: 22px;
+    --card-radius-mobile: 16px;
 }
 
 * {
@@ -20,8 +21,8 @@
 
 html, body {
     width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
+    height: 100%;
+    overflow: hidden;
     background-color: var(--bg-color);
     color: var(--text-color);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -30,19 +31,12 @@ html, body {
 }
 
 body {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    animation: pageIn 0.5s ease-out;
+    animation: pageIn 0.6s ease-out;
 }
 
 @keyframes pageIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 /* ===== Header ===== */
@@ -53,13 +47,13 @@ body {
     width: 100%;
     max-width: 100vw;
     z-index: 100;
-    background: linear-gradient(to bottom, rgba(10, 10, 10, 0.9) 0%, rgba(10, 10, 10, 0.5) 70%, rgba(10, 10, 10, 0) 100%);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: linear-gradient(to bottom, rgba(10, 10, 10, 0.94) 0%, rgba(10, 10, 10, 0.6) 60%, transparent 100%);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     pointer-events: none;
     padding: 0 2rem;
     height: var(--header-height);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .header-content {
@@ -149,89 +143,140 @@ body {
     transform: scale(0.95);
 }
 
-/* ===== Masonry Grid ===== */
-main {
+/* ===== Gallery ===== */
+.gallery-main {
     width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
-}
-
-.masonry-grid {
-    column-count: 5;
-    column-gap: 8px;
-    padding: calc(var(--header-height) + 0.75rem) 8px 2.5rem;
-    width: 100%;
-    max-width: 100vw;
-}
-
-.masonry-item {
-    break-inside: avoid;
-    margin-bottom: 8px;
+    height: 100vh;
     position: relative;
-    overflow: hidden;
-    border-radius: 6px;
-    cursor: pointer;
-    background-color: #111;
-    border: 2px solid transparent;
-    transition: border-color var(--transition-speed) ease,
-                box-shadow var(--transition-speed) ease,
-                opacity 0.4s ease,
-                transform 0.4s ease;
+    background: var(--bg-color);
+}
+
+.gallery-viewport {
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     opacity: 0;
-    transform: translateY(10px);
-    content-visibility: auto;
-    contain-intrinsic-size: 250px;
+    transition: opacity 0.6s cubic-bezier(0.33, 1, 0.68, 1);
 }
 
-.masonry-item.visible {
+.gallery-viewport.loaded {
     opacity: 1;
-    transform: translateY(0);
 }
 
-.masonry-item img {
+.gallery-viewport::-webkit-scrollbar {
+    display: none;
+}
+
+.gallery-track {
+    /* No padding — keeps set heights perfectly equal for infinite scroll */
+}
+
+.gallery-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.9rem 2.5rem;
+    will-change: transform, opacity;
+}
+
+.gallery-card {
+    position: relative;
+    border-radius: var(--card-radius);
+    overflow: hidden;
+    cursor: pointer;
+    background: #0f0f0f;
+    flex-shrink: 0;
+    transition: transform 0.55s cubic-bezier(0.33, 1, 0.68, 1),
+                box-shadow 0.55s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.gallery-card img {
     width: 100%;
-    height: auto;
+    height: 100%;
+    object-fit: cover;
     display: block;
-    border-radius: 4px;
-    transition: transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94), filter var(--transition-speed) ease;
+    transition: transform 0.6s cubic-bezier(0.33, 1, 0.68, 1),
+                filter 0.4s ease;
 }
 
-/* Desktop Hover */
+/* Side cards */
+.gallery-card.card-left,
+.gallery-card.card-right {
+    width: 28%;
+    aspect-ratio: 9 / 13;
+    z-index: 1;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* Center card — larger, forward, overlapping */
+.gallery-card.card-center {
+    width: 36%;
+    aspect-ratio: 9 / 13;
+    z-index: 2;
+    margin-left: -3%;
+    margin-right: -3%;
+    transform: scale(1.08);
+    box-shadow: 0 18px 52px rgba(0, 0, 0, 0.55),
+                0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+/* Desktop hover interactions */
 @media (hover: hover) and (pointer: fine) {
-    .masonry-item:hover {
-        border-color: rgba(255, 255, 255, 0.7);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-        z-index: 2;
+    .gallery-card.card-left:hover,
+    .gallery-card.card-right:hover {
+        transform: scale(1.04);
+        z-index: 3;
+        box-shadow: 0 14px 38px rgba(0, 0, 0, 0.5);
     }
 
-    .masonry-item:hover img {
+    .gallery-card.card-left:hover img,
+    .gallery-card.card-right:hover img {
+        transform: scale(1.06);
+        filter: brightness(1.06);
+    }
+
+    .gallery-card.card-center:hover {
+        transform: scale(1.13);
+        box-shadow: 0 26px 68px rgba(0, 0, 0, 0.6),
+                    0 8px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    .gallery-card.card-center:hover img {
         transform: scale(1.05);
-        filter: brightness(1.08);
+        filter: brightness(1.06);
     }
 }
 
-/* ===== Loader ===== */
-.loader {
-    text-align: center;
-    padding: 3rem 1rem;
-    font-size: 0.9rem;
-    color: #888;
-    letter-spacing: 1.5px;
+/* ===== Gallery Loader ===== */
+.gallery-loader {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.35);
+    letter-spacing: 2.5px;
     text-transform: uppercase;
-    animation: pulse 1.5s ease-in-out infinite;
+    animation: loaderPulse 1.8s ease-in-out infinite;
+    z-index: 50;
+    pointer-events: none;
+    font-weight: 300;
 }
 
-.loader.hidden {
+.gallery-loader.hidden {
     display: none !important;
 }
 
-@keyframes pulse {
-    0%, 100% {
-        opacity: 0.4;
-    }
-    50% {
-        opacity: 1;
-    }
+@keyframes loaderPulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
 }
 
 /* ===== Lightbox ===== */
@@ -242,15 +287,15 @@ main {
     width: 100%;
     height: 100%;
     background-color: var(--overlay-bg);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    transition: opacity 0.35s ease, visibility 0.35s ease;
     cursor: zoom-out;
     padding: 1rem;
 }
@@ -264,10 +309,12 @@ main {
     max-width: 90%;
     max-height: 86vh;
     object-fit: contain;
-    border-radius: 6px;
-    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
-    transition: transform 0.3s ease;
+    border-radius: 8px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8),
+                0 0 0 1px rgba(255, 255, 255, 0.08);
+    transition: transform 0.35s cubic-bezier(0.33, 1, 0.68, 1);
     cursor: default;
+    transform: scale(0.94);
 }
 
 .lightbox.active .lightbox-img {
@@ -279,20 +326,21 @@ main {
     bottom: 1.5rem;
     left: 50%;
     transform: translateX(-50%);
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 0.8rem;
-    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.78rem;
+    letter-spacing: 1.2px;
     pointer-events: none;
     user-select: none;
     white-space: nowrap;
+    font-weight: 300;
 }
 
 .close-btn {
     position: absolute;
     top: 1.5rem;
     right: 1.5rem;
-    background: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     width: 44px;
     height: 44px;
     border-radius: 50%;
@@ -303,42 +351,46 @@ main {
     justify-content: center;
     cursor: pointer;
     line-height: 1;
-    opacity: 0.85;
-    transition: all 0.2s ease;
+    opacity: 0.8;
+    transition: all 0.25s ease;
     z-index: 1001;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .close-btn:hover {
     opacity: 1;
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.18);
+    transform: scale(1.08);
 }
 
-/* ===== Responsive Breakpoints ===== */
-
-@media (max-width: 1400px) {
-    .masonry-grid {
-        column-count: 4;
-    }
-}
-
+/* ===== Responsive: Tablets ===== */
 @media (max-width: 1024px) {
-    .masonry-grid {
-        column-count: 3;
+    .gallery-row {
+        padding: 0.7rem 1.5rem;
+    }
+
+    .gallery-card.card-left,
+    .gallery-card.card-right {
+        width: 27%;
+    }
+
+    .gallery-card.card-center {
+        width: 40%;
+        margin-left: -3%;
+        margin-right: -3%;
     }
 }
 
-/* Mobile Screens (<= 768px) */
+/* ===== Responsive: Mobile ≤ 768px ===== */
 @media (max-width: 768px) {
     .site-header {
         height: var(--header-height-mobile);
         padding: 0 0.85rem;
-        background: rgba(10, 10, 10, 0.92);
+        background: rgba(10, 10, 10, 0.95);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .logo-wrapper {
@@ -358,7 +410,7 @@ main {
         height: 22px;
     }
 
-    /* Single line guarantee on all mobile devices */
+    /* Single line guarantee */
     .brand-name,
     .logo-text {
         font-size: clamp(0.64rem, 2.8vw, 0.95rem);
@@ -378,7 +430,6 @@ main {
     .contact-btn {
         width: 33px;
         height: 33px;
-        border-radius: 50%;
     }
 
     .nav-btn svg,
@@ -387,24 +438,35 @@ main {
         height: 15px;
     }
 
-    .masonry-grid {
-        column-count: 2;
-        column-gap: 5px;
-        padding: calc(var(--header-height-mobile) + 0.5rem) 5px 1.5rem;
-        width: 100%;
-        max-width: 100vw;
+    /* Gallery — mobile */
+    .gallery-viewport {
+        top: var(--header-height-mobile);
     }
 
-    .masonry-item {
-        margin-bottom: 5px;
-        border-radius: 4px;
+    .gallery-row {
+        padding: 0.5rem 0.5rem;
     }
 
-    .masonry-item:hover img {
-        transform: none;
-        filter: none;
+    .gallery-card {
+        border-radius: var(--card-radius-mobile);
     }
 
+    .gallery-card.card-left,
+    .gallery-card.card-right {
+        width: 27%;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+
+    .gallery-card.card-center {
+        width: 48%;
+        margin-left: -3%;
+        margin-right: -3%;
+        transform: scale(1.06);
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5),
+                    0 3px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Lightbox — mobile */
     .lightbox-img {
         max-width: 95%;
         max-height: 80vh;
@@ -412,7 +474,7 @@ main {
 
     .lightbox-nav-hint {
         bottom: 1rem;
-        font-size: 0.72rem;
+        font-size: 0.7rem;
     }
 
     .close-btn {
@@ -424,7 +486,7 @@ main {
     }
 }
 
-/* Small Mobile Screens: 360px to 390px */
+/* ===== Responsive: Small Mobile ≤ 390px ===== */
 @media (max-width: 390px) {
     .site-header {
         padding: 0 0.65rem;
@@ -461,12 +523,18 @@ main {
         height: 14px;
     }
 
-    .masonry-grid {
-        column-gap: 4px;
-        padding: calc(var(--header-height-mobile) + 0.35rem) 4px 1.2rem;
+    .gallery-row {
+        padding: 0.4rem 0.35rem;
     }
 
-    .masonry-item {
-        margin-bottom: 4px;
+    .gallery-card.card-left,
+    .gallery-card.card-right {
+        width: 28%;
+    }
+
+    .gallery-card.card-center {
+        width: 46%;
+        margin-left: -2.5%;
+        margin-right: -2.5%;
     }
 }

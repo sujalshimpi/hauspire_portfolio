@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const grid = document.getElementById('masonry-grid');
+    const viewport = document.getElementById('gallery-viewport');
+    const track = document.getElementById('gallery-track');
     const loader = document.getElementById('loader');
     const lightbox = document.getElementById('lightbox');
     const lightboxImg = document.getElementById('lightbox-img');
@@ -7,12 +8,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const IMAGE_PATH = 'images/';
     const EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
-    const MAX_IMAGES = 200;
+    const MAX_IMAGES = 100;
 
-    let imagesLoaded = 0;
-    let totalFound = 0;
-    let allImages = []; // Track all image sources for arrow-key navigation
-    let currentIndex = -1;
+    let allImages = [];       // Unique image URLs in exact order: 1.jpg, 2.jpg...
+    let currentLightboxIdx = -1;
+    let oneSetHeight = 0;
+    let rowsPerCycle = 0;
+    let isResettingScroll = false;
 
     /**
      * Probe whether an image exists at the given path.
@@ -27,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * For a given index, try all extensions in parallel and return first match.
+     * Try extensions in parallel for a given number.
      */
     async function probeIndex(i) {
         const results = await Promise.all(
@@ -37,110 +39,272 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Batch-probe images in parallel chunks for faster discovery.
-     * Probes in batches of BATCH_SIZE to avoid overwhelming the browser.
+     * Batch-probe images in sequential order.
      */
     async function discoverImages() {
         const BATCH_SIZE = 10;
-        const foundImages = [];
+        const found = [];
 
         for (let start = 1; start <= MAX_IMAGES; start += BATCH_SIZE) {
             const end = Math.min(start + BATCH_SIZE - 1, MAX_IMAGES);
             const batch = [];
-
             for (let i = start; i <= end; i++) {
                 batch.push(probeIndex(i));
             }
-
             const results = await Promise.all(batch);
-            let hadGap = false;
 
-            for (const result of results) {
-                if (result) {
-                    foundImages.push(result);
-                } else {
-                    hadGap = true;
-                }
+            for (const res of results) {
+                if (res) found.push(res);
             }
 
-            // Stop if entire batch had no images (we're past the last one)
             if (results.every(r => r === null)) {
                 break;
             }
         }
-
-        return foundImages;
+        return found;
     }
 
-    // ===== Fade-in Observer =====
-    const fadeObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-                fadeObserver.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.05 });
+    /**
+     * Calculate GCD and LCM for exact repeating triplets cycle.
+     */
+    function gcd(a, b) {
+        return b === 0 ? a : gcd(b, a % b);
+    }
+
+    function lcm(a, b) {
+        return (a * b) / gcd(a, b);
+    }
 
     /**
-     * Create a masonry grid item.
+     * Build the infinite 3-card gallery.
      */
-    function createMasonryItem(src, index) {
-        const item = document.createElement('div');
-        item.className = 'masonry-item';
+    function buildGallery(images) {
+        const totalImages = images.length;
+        if (totalImages === 0) return;
+
+        // Number of images in a full repeating 3-card cycle
+        const totalCardsInCycle = lcm(totalImages, 3);
+        rowsPerCycle = totalCardsInCycle / 3;
+
+        // Generate ordered array of images for 1 full cycle
+        const cycleImageIndices = [];
+        for (let i = 0; i < totalCardsInCycle; i++) {
+            cycleImageIndices.push(i % totalImages);
+        }
+
+        // We build 3 identical sets (Set 0: pre-clone, Set 1: primary, Set 2: post-clone)
+        const SET_COUNT = 3;
+        const fragment = document.createDocumentFragment();
+
+        for (let s = 0; s < SET_COUNT; s++) {
+            const setWrapper = document.createElement('div');
+            setWrapper.className = `gallery-set gallery-set-${s}`;
+            setWrapper.dataset.setIndex = s;
+
+            for (let r = 0; r < rowsPerCycle; r++) {
+                const rowEl = document.createElement('div');
+                rowEl.className = 'gallery-row';
+                rowEl.dataset.rowIndex = r;
+
+                const leftImgIdx = cycleImageIndices[r * 3];
+                const centerImgIdx = cycleImageIndices[r * 3 + 1];
+                const rightImgIdx = cycleImageIndices[r * 3 + 2];
+
+                // Left card
+                const leftCard = createCard(images[leftImgIdx], leftImgIdx, 'card-left');
+                // Center card
+                const centerCard = createCard(images[centerImgIdx], centerImgIdx, 'card-center');
+                // Right card
+                const rightCard = createCard(images[rightImgIdx], rightImgIdx, 'card-right');
+
+                rowEl.appendChild(leftCard);
+                rowEl.appendChild(centerCard);
+                rowEl.appendChild(rightCard);
+
+                setWrapper.appendChild(rowEl);
+            }
+            fragment.appendChild(setWrapper);
+        }
+
+        track.appendChild(fragment);
+    }
+
+    /**
+     * Create an individual gallery card.
+     */
+    function createCard(src, imgIndex, positionClass) {
+        const card = document.createElement('div');
+        card.className = `gallery-card ${positionClass}`;
+        card.dataset.imgIndex = imgIndex;
+        card.dataset.src = src;
 
         const img = document.createElement('img');
         img.src = src;
-        img.alt = `Gallery image ${index + 1}`;
+        img.alt = `Hauspire Luxury Design Portfolio - Photo ${imgIndex + 1}`;
         img.loading = 'lazy';
         img.decoding = 'async';
         img.draggable = false;
 
-        img.addEventListener('load', () => {
-            imagesLoaded++;
-            if (imagesLoaded >= totalFound) {
-                loader.classList.add('hidden');
-            }
+        card.appendChild(img);
+
+        // Click to open lightbox
+        card.addEventListener('click', (e) => {
+            if (isDragging) return; // Ignore click if user was dragging
+            openLightbox(imgIndex);
         });
 
-        img.addEventListener('error', () => {
-            item.style.display = 'none';
-            imagesLoaded++;
-            if (imagesLoaded >= totalFound) {
-                loader.classList.add('hidden');
-            }
-        });
-
-        item.addEventListener('click', () => {
-            openLightbox(index);
-        });
-
-        item.appendChild(img);
-        fadeObserver.observe(item);
-        return item;
+        return card;
     }
 
-    // ===== Lightbox =====
+    /**
+     * Measure single cycle height and initialize scroll position.
+     */
+    function initScrollPosition() {
+        const set0 = track.querySelector('.gallery-set-0');
+        if (!set0) return;
 
+        oneSetHeight = set0.getBoundingClientRect().height;
+        if (oneSetHeight === 0) {
+            // If images are still rendering dimensions, re-try shortly
+            requestAnimationFrame(initScrollPosition);
+            return;
+        }
+
+        // Start in the middle of Set 1 for seamless scrolling in both directions
+        viewport.scrollTop = oneSetHeight;
+
+        // Reveal the viewport
+        viewport.classList.add('loaded');
+        loader.classList.add('hidden');
+
+        updateDepthEffects();
+    }
+
+    /**
+     * Infinite scroll boundary check (seamless loop with zero visual jump).
+     */
+    function handleInfiniteLoop() {
+        if (isResettingScroll || oneSetHeight <= 0) return;
+
+        const currentScroll = viewport.scrollTop;
+
+        // If user scrolls up near Set 0, jump forward by oneSetHeight into Set 1
+        if (currentScroll < oneSetHeight * 0.3) {
+            isResettingScroll = true;
+            viewport.scrollTop += oneSetHeight;
+            isResettingScroll = false;
+        }
+        // If user scrolls down past Set 1 into Set 2, jump back by oneSetHeight into Set 1
+        else if (currentScroll >= oneSetHeight * 1.7) {
+            isResettingScroll = true;
+            viewport.scrollTop -= oneSetHeight;
+            isResettingScroll = false;
+        }
+    }
+
+    /**
+     * Dynamic depth & focus effect: rows near center get full presence,
+     * rows further away subtly scale and soften.
+     */
+    let ticking = false;
+    function updateDepthEffects() {
+        const viewportHeight = viewport.clientHeight;
+        const viewportCenter = viewportHeight / 2;
+        const rows = track.querySelectorAll('.gallery-row');
+
+        rows.forEach(row => {
+            const rect = row.getBoundingClientRect();
+            const rowCenter = rect.top + rect.height / 2;
+            const distFromCenter = Math.abs(rowCenter - viewportCenter);
+            const normalizedDist = Math.min(distFromCenter / (viewportHeight * 0.65), 1);
+
+            // Subtle scale factor between 0.95 and 1.0
+            const scale = 1 - (normalizedDist * 0.05);
+            // Subtle opacity factor between 0.88 and 1.0
+            const opacity = 1 - (normalizedDist * 0.12);
+
+            row.style.transform = `scale(${scale.toFixed(4)})`;
+            row.style.opacity = opacity.toFixed(3);
+        });
+    }
+
+    function onScroll() {
+        handleInfiniteLoop();
+
+        if (!ticking) {
+            requestAnimationFrame(() => {
+                updateDepthEffects();
+                ticking = false;
+            });
+            ticking = true;
+        }
+    }
+
+    viewport.addEventListener('scroll', onScroll, { passive: true });
+
+    // Handle window resize: recalculate setHeight
+    window.addEventListener('resize', () => {
+        const set0 = track.querySelector('.gallery-set-0');
+        if (set0) {
+            oneSetHeight = set0.getBoundingClientRect().height;
+            updateDepthEffects();
+        }
+    });
+
+    // ===== Desktop Drag-to-Scroll Support for fluid feel =====
+    let isMouseDown = false;
+    let isDragging = false;
+    let startY = 0;
+    let scrollStart = 0;
+    let dragDistance = 0;
+
+    viewport.addEventListener('mousedown', (e) => {
+        isMouseDown = true;
+        isDragging = false;
+        startY = e.pageY;
+        scrollStart = viewport.scrollTop;
+        dragDistance = 0;
+        viewport.style.cursor = 'grabbing';
+        viewport.style.userSelect = 'none';
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isMouseDown) return;
+        const deltaY = e.pageY - startY;
+        dragDistance += Math.abs(deltaY);
+        if (dragDistance > 6) {
+            isDragging = true;
+        }
+        viewport.scrollTop = scrollStart - deltaY;
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (isMouseDown) {
+            isMouseDown = false;
+            viewport.style.cursor = '';
+            viewport.style.userSelect = '';
+            setTimeout(() => { isDragging = false; }, 50);
+        }
+    });
+
+    // ===== Lightbox Functions =====
     function openLightbox(index) {
-        currentIndex = index;
+        currentLightboxIdx = index;
         lightboxImg.src = allImages[index];
-        lightboxImg.alt = `Gallery image ${index + 1}`;
+        lightboxImg.alt = `Hauspire Luxury Design Portfolio - Photo ${index + 1}`;
 
         requestAnimationFrame(() => {
             lightbox.classList.add('active');
         });
 
         document.body.style.overflow = 'hidden';
-
-        // Preload adjacent images for instant navigation
         preloadAdjacent(index);
     }
 
     function closeLightbox() {
         lightbox.classList.remove('active');
         document.body.style.overflow = '';
-        currentIndex = -1;
+        currentLightboxIdx = -1;
 
         setTimeout(() => {
             lightboxImg.src = '';
@@ -148,30 +312,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function navigateLightbox(direction) {
-        if (currentIndex < 0) return;
-        const newIndex = currentIndex + direction;
-        if (newIndex >= 0 && newIndex < allImages.length) {
-            currentIndex = newIndex;
-            lightboxImg.src = allImages[currentIndex];
-            lightboxImg.alt = `Gallery image ${currentIndex + 1}`;
-            preloadAdjacent(currentIndex);
-        }
+        if (currentLightboxIdx < 0 || allImages.length === 0) return;
+        // Infinite cycle inside lightbox as well
+        currentLightboxIdx = (currentLightboxIdx + direction + allImages.length) % allImages.length;
+        lightboxImg.src = allImages[currentLightboxIdx];
+        lightboxImg.alt = `Hauspire Luxury Design Portfolio - Photo ${currentLightboxIdx + 1}`;
+        preloadAdjacent(currentLightboxIdx);
     }
 
     function preloadAdjacent(index) {
         [-1, 1].forEach(offset => {
-            const i = index + offset;
-            if (i >= 0 && i < allImages.length) {
-                const link = document.createElement('link');
-                link.rel = 'prefetch';
-                link.as = 'image';
-                link.href = allImages[i];
-                document.head.appendChild(link);
-            }
+            const i = (index + offset + allImages.length) % allImages.length;
+            const link = document.createElement('link');
+            link.rel = 'prefetch';
+            link.as = 'image';
+            link.href = allImages[i];
+            document.head.appendChild(link);
         });
     }
-
-    // ===== Event Listeners =====
 
     closeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -187,62 +345,64 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', (e) => {
         if (!lightbox.classList.contains('active')) return;
 
-        switch (e.key) {
-            case 'Escape':
-                closeLightbox();
-                break;
-            case 'ArrowLeft':
-                navigateLightbox(-1);
-                break;
-            case 'ArrowRight':
-                navigateLightbox(1);
-                break;
+        if (e.key === 'Escape') {
+            closeLightbox();
+        } else if (e.key === 'ArrowLeft') {
+            navigateLightbox(-1);
+        } else if (e.key === 'ArrowRight') {
+            navigateLightbox(1);
         }
     });
 
-    // ===== Touch Swipe Gestures for Mobile Lightbox =====
-    let touchStartX = 0;
-    let touchStartY = 0;
+    // Touch Swipe inside Lightbox
+    let lbTouchStartX = 0;
+    let lbTouchStartY = 0;
 
     lightbox.addEventListener('touchstart', (e) => {
-        touchStartX = e.changedTouches[0].screenX;
-        touchStartY = e.changedTouches[0].screenY;
+        lbTouchStartX = e.changedTouches[0].screenX;
+        lbTouchStartY = e.changedTouches[0].screenY;
     }, { passive: true });
 
     lightbox.addEventListener('touchend', (e) => {
         if (!lightbox.classList.contains('active')) return;
         const touchEndX = e.changedTouches[0].screenX;
         const touchEndY = e.changedTouches[0].screenY;
-        const diffX = touchEndX - touchStartX;
-        const diffY = touchEndY - touchStartY;
+        const diffX = touchEndX - lbTouchStartX;
+        const diffY = touchEndY - lbTouchStartY;
 
-        // Ensure horizontal swipe is dominant and exceeds minimum threshold (40px)
         if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
             if (diffX < 0) {
-                navigateLightbox(1); // Swipe left -> next image
+                navigateLightbox(1);
             } else {
-                navigateLightbox(-1); // Swipe right -> prev image
+                navigateLightbox(-1);
             }
         }
     }, { passive: true });
 
     // ===== Initialize =====
-
     async function init() {
         const images = await discoverImages();
         allImages = images;
-        totalFound = images.length;
 
-        if (totalFound === 0) {
-            loader.textContent = 'No images found. Add numbered images (1.jpg, 2.jpg, ...) to the images/ folder.';
+        if (images.length === 0) {
+            loader.textContent = 'No images found in images/ directory.';
             return;
         }
 
-        const fragment = document.createDocumentFragment();
-        images.forEach((src, index) => {
-            fragment.appendChild(createMasonryItem(src, index));
-        });
-        grid.appendChild(fragment);
+        buildGallery(images);
+
+        // Wait for first image to load or DOM paint to accurately measure heights
+        const firstImg = track.querySelector('img');
+        if (firstImg) {
+            if (firstImg.complete) {
+                initScrollPosition();
+            } else {
+                firstImg.addEventListener('load', initScrollPosition);
+                firstImg.addEventListener('error', initScrollPosition);
+            }
+        } else {
+            initScrollPosition();
+        }
     }
 
     init();

@@ -52,6 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
         video.muted = true;
         video.loop = true;
         video.playsInline = true;
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('webkit-playsinline', 'true');
+        video.setAttribute('disableRemotePlayback', 'true');
         video.preload = 'none'; // Don't preload until visible
         video.setAttribute('decoding', 'async');
 

@@ -200,6 +200,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // ===== Touch Swipe Gestures for Mobile Lightbox =====
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    lightbox.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    lightbox.addEventListener('touchend', (e) => {
+        if (!lightbox.classList.contains('active')) return;
+        const touchEndX = e.changedTouches[0].screenX;
+        const touchEndY = e.changedTouches[0].screenY;
+        const diffX = touchEndX - touchStartX;
+        const diffY = touchEndY - touchStartY;
+
+        // Ensure horizontal swipe is dominant and exceeds minimum threshold (40px)
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+            if (diffX < 0) {
+                navigateLightbox(1); // Swipe left -> next image
+            } else {
+                navigateLightbox(-1); // Swipe right -> prev image
+            }
+        }
+    }, { passive: true });
+
     // ===== Initialize =====
 
     async function init() {

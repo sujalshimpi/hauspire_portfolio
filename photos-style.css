@@ -3,11 +3,13 @@
 :root {
     --bg-color: #0a0a0a;
     --text-color: #ffffff;
-    --border-color: #333;
-    --header-height: 60px;
-    --overlay-bg: rgba(0, 0, 0, 0.92);
+    --border-color: #333333;
+    --header-height: 64px;
+    --header-height-mobile: 56px;
+    --overlay-bg: rgba(0, 0, 0, 0.94);
     --transition-speed: 0.3s;
     --accent-glow: rgba(255, 255, 255, 0.15);
+    --brand-red: #ff2638;
 }
 
 * {
@@ -16,20 +18,28 @@
     box-sizing: border-box;
 }
 
-body {
-    font-family: 'Inter', sans-serif;
+html, body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
     background-color: var(--bg-color);
     color: var(--text-color);
-    overflow-x: hidden;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
     min-height: 100vh;
-    animation: pageIn 0.6s ease-out;
+    display: flex;
+    flex-direction: column;
+    animation: pageIn 0.5s ease-out;
 }
 
 @keyframes pageIn {
     from {
         opacity: 0;
     }
-
     to {
         opacity: 1;
     }
@@ -41,11 +51,15 @@ body {
     top: 0;
     left: 0;
     width: 100%;
+    max-width: 100vw;
     z-index: 100;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 60%, rgba(0, 0, 0, 0) 100%);
+    background: linear-gradient(to bottom, rgba(10, 10, 10, 0.9) 0%, rgba(10, 10, 10, 0.5) 70%, rgba(10, 10, 10, 0) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     pointer-events: none;
     padding: 0 2rem;
     height: var(--header-height);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .header-content {
@@ -53,71 +67,120 @@ body {
     justify-content: space-between;
     align-items: center;
     height: 100%;
+    width: 100%;
     max-width: 100%;
 }
 
-.brand-name {
-    font-weight: 500;
-    letter-spacing: -0.5px;
-    font-size: 1.1rem;
+.logo-wrapper {
+    display: flex;
+    align-items: center;
     pointer-events: auto;
+    min-width: 0;
+}
+
+.brand-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    text-decoration: none;
+    color: var(--text-color);
+    min-width: 0;
+}
+
+.brand-logo {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    display: block;
+    filter: drop-shadow(0 2px 6px rgba(255, 38, 56, 0.25));
+    transition: transform 0.3s ease;
+}
+
+.brand-link:hover .brand-logo {
+    transform: scale(1.06);
+}
+
+.brand-name,
+.logo-text {
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    font-size: 1.05rem;
+    white-space: nowrap;
+    text-transform: uppercase;
 }
 
 .header-nav {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.65rem;
     align-items: center;
     pointer-events: auto;
+    flex-shrink: 0;
 }
 
 .nav-btn,
 .contact-btn {
     text-decoration: none;
     color: var(--text-color);
-    font-size: 0.9rem;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     transition: all var(--transition-speed) ease;
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
+    cursor: pointer;
+    flex-shrink: 0;
 }
 
 .nav-btn:hover,
 .contact-btn:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.16);
     border-color: rgba(255, 255, 255, 0.8);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-.nav-btn {
-    background-color: rgba(255, 255, 255, 0.06);
+.nav-btn:active,
+.contact-btn:active {
+    transform: scale(0.95);
 }
 
 /* ===== Masonry Grid ===== */
+main {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
 .masonry-grid {
     column-count: 5;
-    column-gap: 6px;
-    padding: calc(var(--header-height) + 1rem) 6px 2rem;
-    max-width: 100%;
+    column-gap: 8px;
+    padding: calc(var(--header-height) + 0.75rem) 8px 2.5rem;
+    width: 100%;
+    max-width: 100vw;
 }
 
 .masonry-item {
     break-inside: avoid;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     position: relative;
     overflow: hidden;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     background-color: #111;
     border: 2px solid transparent;
     transition: border-color var(--transition-speed) ease,
-        box-shadow var(--transition-speed) ease,
-        opacity 0.5s ease,
-        transform 0.5s ease;
-    will-change: border-color, box-shadow;
-    /* Fade-in on scroll */
+                box-shadow var(--transition-speed) ease,
+                opacity 0.4s ease,
+                transform 0.4s ease;
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(10px);
+    content-visibility: auto;
+    contain-intrinsic-size: 250px;
 }
 
 .masonry-item.visible {
@@ -129,44 +192,43 @@ body {
     width: 100%;
     height: auto;
     display: block;
-    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-        filter var(--transition-speed) ease;
-    will-change: transform;
+    border-radius: 4px;
+    transition: transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94), filter var(--transition-speed) ease;
 }
 
-/* Hover Effect */
-.masonry-item:hover {
-    border-color: rgba(255, 255, 255, 0.6);
-    box-shadow: 0 0 20px var(--accent-glow);
-    z-index: 2;
-}
+/* Desktop Hover */
+@media (hover: hover) and (pointer: fine) {
+    .masonry-item:hover {
+        border-color: rgba(255, 255, 255, 0.7);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        z-index: 2;
+    }
 
-.masonry-item:hover img {
-    transform: scale(1.06);
-    filter: brightness(1.1);
+    .masonry-item:hover img {
+        transform: scale(1.05);
+        filter: brightness(1.08);
+    }
 }
 
 /* ===== Loader ===== */
 .loader {
     text-align: center;
     padding: 3rem 1rem;
-    font-size: 0.95rem;
-    color: #666;
-    letter-spacing: 1px;
+    font-size: 0.9rem;
+    color: #888;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
     animation: pulse 1.5s ease-in-out infinite;
 }
 
 .loader.hidden {
-    display: none;
+    display: none !important;
 }
 
 @keyframes pulse {
-
-    0%,
-    100% {
+    0%, 100% {
         opacity: 0.4;
     }
-
     50% {
         opacity: 1;
     }
@@ -180,16 +242,17 @@ body {
     width: 100%;
     height: 100%;
     background-color: var(--overlay-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.35s ease, visibility 0.35s ease;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
     cursor: zoom-out;
+    padding: 1rem;
 }
 
 .lightbox.active {
@@ -198,12 +261,12 @@ body {
 }
 
 .lightbox-img {
-    max-width: 92%;
-    max-height: 90vh;
+    max-width: 90%;
+    max-height: 86vh;
     object-fit: contain;
-    border-radius: 4px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-    transition: transform 0.35s ease;
+    border-radius: 6px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    transition: transform 0.3s ease;
     cursor: default;
 }
 
@@ -211,40 +274,50 @@ body {
     transform: scale(1);
 }
 
-/* Lightbox nav hint text */
 .lightbox-nav-hint {
     position: absolute;
     bottom: 1.5rem;
     left: 50%;
     transform: translateX(-50%);
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(255, 255, 255, 0.5);
     font-size: 0.8rem;
     letter-spacing: 1px;
     pointer-events: none;
     user-select: none;
+    white-space: nowrap;
 }
 
 .close-btn {
     position: absolute;
     top: 1.5rem;
-    right: 2rem;
+    right: 1.5rem;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
     color: #fff;
-    font-size: 2.8rem;
+    font-size: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     line-height: 1;
-    opacity: 0.7;
-    transition: opacity 0.2s ease, transform 0.2s ease;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    opacity: 0.85;
+    transition: all 0.2s ease;
     z-index: 1001;
-    user-select: none;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
 }
 
 .close-btn:hover {
     opacity: 1;
-    transform: scale(1.15);
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
 }
 
-/* ===== Responsive ===== */
+/* ===== Responsive Breakpoints ===== */
+
 @media (max-width: 1400px) {
     .masonry-grid {
         column-count: 4;
@@ -257,22 +330,74 @@ body {
     }
 }
 
+/* Mobile Screens (<= 768px) */
 @media (max-width: 768px) {
     .site-header {
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
+        height: var(--header-height-mobile);
+        padding: 0 0.85rem;
+        background: rgba(10, 10, 10, 0.92);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .logo-wrapper {
+        flex: 1 1 auto;
+        min-width: 0;
+        margin-right: 0.5rem;
+        overflow: hidden;
+    }
+
+    .brand-link {
+        gap: 0.45rem;
+        max-width: 100%;
+    }
+
+    .brand-logo {
+        width: 22px;
+        height: 22px;
+    }
+
+    /* Single line guarantee on all mobile devices */
+    .brand-name,
+    .logo-text {
+        font-size: clamp(0.64rem, 2.8vw, 0.95rem);
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+    }
+
+    .header-nav {
+        gap: 0.4rem;
+        flex-shrink: 0;
+    }
+
+    .nav-btn,
+    .contact-btn {
+        width: 33px;
+        height: 33px;
+        border-radius: 50%;
+    }
+
+    .nav-btn svg,
+    .contact-btn svg {
+        width: 15px;
+        height: 15px;
     }
 
     .masonry-grid {
         column-count: 2;
-        column-gap: 4px;
-        padding: calc(var(--header-height) + 0.5rem) 4px 1rem;
+        column-gap: 5px;
+        padding: calc(var(--header-height-mobile) + 0.5rem) 5px 1.5rem;
+        width: 100%;
+        max-width: 100vw;
     }
 
     .masonry-item {
-        margin-bottom: 4px;
-        border-width: 1px;
+        margin-bottom: 5px;
+        border-radius: 4px;
     }
 
     .masonry-item:hover img {
@@ -280,25 +405,68 @@ body {
         filter: none;
     }
 
+    .lightbox-img {
+        max-width: 95%;
+        max-height: 80vh;
+    }
+
+    .lightbox-nav-hint {
+        bottom: 1rem;
+        font-size: 0.72rem;
+    }
+
     .close-btn {
         top: 1rem;
         right: 1rem;
-        font-size: 2.2rem;
+        width: 38px;
+        height: 38px;
+        font-size: 1.6rem;
     }
 }
 
-@media (max-width: 480px) {
-    .masonry-grid {
-        column-count: 1;
+/* Small Mobile Screens: 360px to 390px */
+@media (max-width: 390px) {
+    .site-header {
+        padding: 0 0.65rem;
     }
 
-    .brand-name {
-        font-size: 0.95rem;
+    .brand-link {
+        gap: 0.35rem;
+    }
+
+    .brand-logo {
+        width: 20px;
+        height: 20px;
+    }
+
+    .brand-name,
+    .logo-text {
+        font-size: clamp(0.58rem, 2.6vw, 0.72rem);
+        letter-spacing: 0.01em;
+    }
+
+    .header-nav {
+        gap: 0.3rem;
     }
 
     .nav-btn,
     .contact-btn {
-        font-size: 0.8rem;
-        padding: 0.4rem 0.8rem;
+        width: 30px;
+        height: 30px;
+    }
+
+    .nav-btn svg,
+    .contact-btn svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .masonry-grid {
+        column-gap: 4px;
+        padding: calc(var(--header-height-mobile) + 0.35rem) 4px 1.2rem;
+    }
+
+    .masonry-item {
+        margin-bottom: 4px;
     }
 }

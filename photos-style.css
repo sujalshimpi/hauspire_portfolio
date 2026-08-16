@@ -1,4 +1,4 @@
-/* ===== Hauspire Portfolio Gallery — Infinite 3-Card Layout ===== */
+/* ===== Hauspire Portfolio Gallery — 2 Horizontal Infinite Carousels ===== */
 
 :root {
     --bg-color: #0a0a0a;
@@ -31,7 +31,7 @@ html, body {
 }
 
 body {
-    animation: pageIn 0.6s ease-out;
+    animation: pageIn 0.5s ease-out;
 }
 
 @keyframes pageIn {
@@ -143,114 +143,109 @@ body {
     transform: scale(0.95);
 }
 
-/* ===== Gallery ===== */
+/* ===== Dual Carousel Gallery Main ===== */
 .gallery-main {
-    width: 100%;
-    height: 100vh;
-    position: relative;
-    background: var(--bg-color);
-}
-
-.gallery-viewport {
     position: fixed;
     top: var(--header-height);
     left: 0;
     right: 0;
     bottom: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    opacity: 0;
-    transition: opacity 0.6s cubic-bezier(0.33, 1, 0.68, 1);
+    width: 100%;
+    height: calc(100vh - var(--header-height));
+    height: calc(100dvh - var(--header-height));
+    overflow: hidden;
+    background: var(--bg-color);
 }
 
-.gallery-viewport.loaded {
+.gallery-dual-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    justify-content: space-evenly;
+    align-items: center;
+    padding: 0.4rem 0;
+    opacity: 0;
+    transition: opacity 0.55s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.gallery-dual-container.loaded {
     opacity: 1;
 }
 
-.gallery-viewport::-webkit-scrollbar {
-    display: none;
-}
-
-.gallery-track {
-    /* No padding — keeps set heights perfectly equal for infinite scroll */
-}
-
-.gallery-row {
+/* Individual Carousel Row Section */
+.carousel-section {
+    width: 100%;
+    height: 49%;
+    max-height: calc((100dvh - var(--header-height)) * 0.49);
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0.9rem 2.5rem;
-    will-change: transform, opacity;
+    overflow: hidden;
 }
 
-.gallery-card {
+.carousel-viewport {
     position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: pan-y;
+}
+
+.carousel-viewport:active {
+    cursor: grabbing;
+}
+
+.carousel-track {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Individual Cards with Overlapping Elevation */
+.carousel-card {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    height: 84%;
+    aspect-ratio: 9 / 13;
     border-radius: var(--card-radius);
     overflow: hidden;
+    background: #111111;
+    transform-origin: center center;
+    will-change: transform, opacity, z-index;
     cursor: pointer;
-    background: #0f0f0f;
-    flex-shrink: 0;
-    transition: transform 0.55s cubic-bezier(0.33, 1, 0.68, 1),
-                box-shadow 0.55s cubic-bezier(0.33, 1, 0.68, 1);
+    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.6),
+                0 4px 14px rgba(0, 0, 0, 0.35);
+    transition: box-shadow 0.35s ease;
 }
 
-.gallery-card img {
+.carousel-card img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center;
     display: block;
-    transition: transform 0.6s cubic-bezier(0.33, 1, 0.68, 1),
-                filter 0.4s ease;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
 }
 
-/* Side cards */
-.gallery-card.card-left,
-.gallery-card.card-right {
-    width: 28%;
-    aspect-ratio: 9 / 13;
-    z-index: 1;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
-}
-
-/* Center card — larger, forward, overlapping */
-.gallery-card.card-center {
-    width: 36%;
-    aspect-ratio: 9 / 13;
-    z-index: 2;
-    margin-left: -3%;
-    margin-right: -3%;
-    transform: scale(1.08);
-    box-shadow: 0 18px 52px rgba(0, 0, 0, 0.55),
-                0 4px 14px rgba(0, 0, 0, 0.3);
-}
-
-/* Desktop hover interactions */
+/* Desktop Hover */
 @media (hover: hover) and (pointer: fine) {
-    .gallery-card.card-left:hover,
-    .gallery-card.card-right:hover {
-        transform: scale(1.04);
-        z-index: 3;
-        box-shadow: 0 14px 38px rgba(0, 0, 0, 0.5);
-    }
-
-    .gallery-card.card-left:hover img,
-    .gallery-card.card-right:hover img {
-        transform: scale(1.06);
-        filter: brightness(1.06);
-    }
-
-    .gallery-card.card-center:hover {
-        transform: scale(1.13);
-        box-shadow: 0 26px 68px rgba(0, 0, 0, 0.6),
-                    0 8px 20px rgba(0, 0, 0, 0.35);
-    }
-
-    .gallery-card.card-center:hover img {
-        transform: scale(1.05);
-        filter: brightness(1.06);
+    .carousel-card:hover {
+        box-shadow: 0 22px 56px rgba(0, 0, 0, 0.75),
+                    0 6px 18px rgba(0, 0, 0, 0.45);
     }
 }
 
@@ -364,25 +359,7 @@ body {
     transform: scale(1.08);
 }
 
-/* ===== Responsive: Tablets ===== */
-@media (max-width: 1024px) {
-    .gallery-row {
-        padding: 0.7rem 1.5rem;
-    }
-
-    .gallery-card.card-left,
-    .gallery-card.card-right {
-        width: 27%;
-    }
-
-    .gallery-card.card-center {
-        width: 40%;
-        margin-left: -3%;
-        margin-right: -3%;
-    }
-}
-
-/* ===== Responsive: Mobile ≤ 768px ===== */
+/* ===== Responsive: Mobile Screens (<= 768px) ===== */
 @media (max-width: 768px) {
     .site-header {
         height: var(--header-height-mobile);
@@ -410,7 +387,6 @@ body {
         height: 22px;
     }
 
-    /* Single line guarantee */
     .brand-name,
     .logo-text {
         font-size: clamp(0.64rem, 2.8vw, 0.95rem);
@@ -438,35 +414,28 @@ body {
         height: 15px;
     }
 
-    /* Gallery — mobile */
-    .gallery-viewport {
+    .gallery-main {
         top: var(--header-height-mobile);
+        height: calc(100vh - var(--header-height-mobile));
+        height: calc(100dvh - var(--header-height-mobile));
     }
 
-    .gallery-row {
-        padding: 0.5rem 0.5rem;
+    .gallery-dual-container {
+        padding: 0.2rem 0;
     }
 
-    .gallery-card {
+    .carousel-section {
+        height: 49%;
+        max-height: calc((100dvh - var(--header-height-mobile)) * 0.49);
+    }
+
+    .carousel-card {
+        height: 86%;
         border-radius: var(--card-radius-mobile);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6),
+                    0 3px 10px rgba(0, 0, 0, 0.35);
     }
 
-    .gallery-card.card-left,
-    .gallery-card.card-right {
-        width: 27%;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-    }
-
-    .gallery-card.card-center {
-        width: 48%;
-        margin-left: -3%;
-        margin-right: -3%;
-        transform: scale(1.06);
-        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5),
-                    0 3px 10px rgba(0, 0, 0, 0.3);
-    }
-
-    /* Lightbox — mobile */
     .lightbox-img {
         max-width: 95%;
         max-height: 80vh;
@@ -486,7 +455,7 @@ body {
     }
 }
 
-/* ===== Responsive: Small Mobile ≤ 390px ===== */
+/* ===== Responsive: Small Mobile (<= 390px) ===== */
 @media (max-width: 390px) {
     .site-header {
         padding: 0 0.65rem;
@@ -523,18 +492,7 @@ body {
         height: 14px;
     }
 
-    .gallery-row {
-        padding: 0.4rem 0.35rem;
-    }
-
-    .gallery-card.card-left,
-    .gallery-card.card-right {
-        width: 28%;
-    }
-
-    .gallery-card.card-center {
-        width: 46%;
-        margin-left: -2.5%;
-        margin-right: -2.5%;
+    .carousel-card {
+        height: 88%;
     }
 }

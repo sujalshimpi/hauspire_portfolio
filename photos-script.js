@@ -1,304 +1,283 @@
+/**
+ * Hauspire Luxury Design Studio — Dual Horizontal Infinite Carousels
+ * Row 1: Photos 1 to 6
+ * Row 2: Photos 7 to 14
+ */
+
 document.addEventListener('DOMContentLoaded', () => {
-    const viewport = document.getElementById('gallery-viewport');
-    const track = document.getElementById('gallery-track');
     const loader = document.getElementById('loader');
+    const container = document.querySelector('.gallery-dual-container');
     const lightbox = document.getElementById('lightbox');
     const lightboxImg = document.getElementById('lightbox-img');
     const closeBtn = document.getElementById('close-btn');
 
-    const IMAGE_PATH = 'images/';
-    const EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
-    const MAX_IMAGES = 100;
+    // Row 1: Photos 1 to 6
+    const ROW_1_IMAGES = [
+        'images/1.jpg',
+        'images/2.jpg',
+        'images/3.jpg',
+        'images/4.jpg',
+        'images/5.jpg',
+        'images/6.jpg'
+    ];
 
-    let allImages = [];       // Unique image URLs in exact order: 1.jpg, 2.jpg...
+    // Row 2: Photos 7 to 14
+    const ROW_2_IMAGES = [
+        'images/7.jpg',
+        'images/8.jpg',
+        'images/9.jpg',
+        'images/10.jpg',
+        'images/11.jpg',
+        'images/12.jpg',
+        'images/13.jpg',
+        'images/14.jpg'
+    ];
+
+    const ALL_IMAGES = [...ROW_1_IMAGES, ...ROW_2_IMAGES];
     let currentLightboxIdx = -1;
-    let oneSetHeight = 0;
-    let rowsPerCycle = 0;
-    let isResettingScroll = false;
 
     /**
-     * Probe whether an image exists at the given path.
+     * Circular Continuous Infinite Carousel Engine
      */
-    function probeImage(src) {
-        return new Promise((resolve) => {
-            const img = new Image();
-            img.onload = () => resolve(src);
-            img.onerror = () => resolve(null);
-            img.src = src;
-        });
-    }
+    class InfiniteCarousel {
+        constructor({ viewport, track, images, onCardClick }) {
+            this.viewport = viewport;
+            this.track = track;
+            this.images = images;
+            this.total = images.length;
+            this.onCardClick = onCardClick;
 
-    /**
-     * Try extensions in parallel for a given number.
-     */
-    async function probeIndex(i) {
-        const results = await Promise.all(
-            EXTENSIONS.map(ext => probeImage(`${IMAGE_PATH}${i}.${ext}`))
-        );
-        return results.find(r => r !== null) || null;
-    }
+            this.pos = 0;          // Continuous floating-point position
+            this.targetPos = 0;    // Target position for spring physics
+            this.velocity = 0;
+            this.isDragging = false;
+            this.hasDragged = false;
+            this.startX = 0;
+            this.startY = 0;
+            this.lastX = 0;
+            this.lastTime = 0;
+            this.isHorizontalSwipe = false;
+            this.isGestureDecided = false;
+            this.spacing = 240;
 
-    /**
-     * Batch-probe images in sequential order.
-     */
-    async function discoverImages() {
-        const BATCH_SIZE = 10;
-        const found = [];
-
-        for (let start = 1; start <= MAX_IMAGES; start += BATCH_SIZE) {
-            const end = Math.min(start + BATCH_SIZE - 1, MAX_IMAGES);
-            const batch = [];
-            for (let i = start; i <= end; i++) {
-                batch.push(probeIndex(i));
-            }
-            const results = await Promise.all(batch);
-
-            for (const res of results) {
-                if (res) found.push(res);
-            }
-
-            if (results.every(r => r === null)) {
-                break;
-            }
-        }
-        return found;
-    }
-
-    /**
-     * Calculate GCD and LCM for exact repeating triplets cycle.
-     */
-    function gcd(a, b) {
-        return b === 0 ? a : gcd(b, a % b);
-    }
-
-    function lcm(a, b) {
-        return (a * b) / gcd(a, b);
-    }
-
-    /**
-     * Build the infinite 3-card gallery.
-     */
-    function buildGallery(images) {
-        const totalImages = images.length;
-        if (totalImages === 0) return;
-
-        // Number of images in a full repeating 3-card cycle
-        const totalCardsInCycle = lcm(totalImages, 3);
-        rowsPerCycle = totalCardsInCycle / 3;
-
-        // Generate ordered array of images for 1 full cycle
-        const cycleImageIndices = [];
-        for (let i = 0; i < totalCardsInCycle; i++) {
-            cycleImageIndices.push(i % totalImages);
+            this.cardElements = [];
+            this.initCards();
+            this.initEvents();
+            this.updateSpacing();
         }
 
-        // We build 3 identical sets (Set 0: pre-clone, Set 1: primary, Set 2: post-clone)
-        const SET_COUNT = 3;
-        const fragment = document.createDocumentFragment();
+        initCards() {
+            this.track.innerHTML = '';
+            this.cardElements = [];
 
-        for (let s = 0; s < SET_COUNT; s++) {
-            const setWrapper = document.createElement('div');
-            setWrapper.className = `gallery-set gallery-set-${s}`;
-            setWrapper.dataset.setIndex = s;
+            this.images.forEach((src, idx) => {
+                const card = document.createElement('div');
+                card.className = 'carousel-card';
+                card.dataset.index = idx;
+                card.dataset.src = src;
 
-            for (let r = 0; r < rowsPerCycle; r++) {
-                const rowEl = document.createElement('div');
-                rowEl.className = 'gallery-row';
-                rowEl.dataset.rowIndex = r;
+                const img = document.createElement('img');
+                img.src = src;
+                img.alt = `Hauspire Luxury Design Studio - Portfolio Image`;
+                img.loading = 'eager';
+                img.decoding = 'async';
+                img.draggable = false;
 
-                const leftImgIdx = cycleImageIndices[r * 3];
-                const centerImgIdx = cycleImageIndices[r * 3 + 1];
-                const rightImgIdx = cycleImageIndices[r * 3 + 2];
+                card.appendChild(img);
 
-                // Left card
-                const leftCard = createCard(images[leftImgIdx], leftImgIdx, 'card-left');
-                // Center card
-                const centerCard = createCard(images[centerImgIdx], centerImgIdx, 'card-center');
-                // Right card
-                const rightCard = createCard(images[rightImgIdx], rightImgIdx, 'card-right');
+                card.addEventListener('click', (e) => {
+                    if (this.hasDragged) return;
+                    this.onCardClick(src, idx, this.images);
+                });
 
-                rowEl.appendChild(leftCard);
-                rowEl.appendChild(centerCard);
-                rowEl.appendChild(rightCard);
-
-                setWrapper.appendChild(rowEl);
-            }
-            fragment.appendChild(setWrapper);
-        }
-
-        track.appendChild(fragment);
-    }
-
-    /**
-     * Create an individual gallery card.
-     */
-    function createCard(src, imgIndex, positionClass) {
-        const card = document.createElement('div');
-        card.className = `gallery-card ${positionClass}`;
-        card.dataset.imgIndex = imgIndex;
-        card.dataset.src = src;
-
-        const img = document.createElement('img');
-        img.src = src;
-        img.alt = `Hauspire Luxury Design Portfolio - Photo ${imgIndex + 1}`;
-        img.loading = 'lazy';
-        img.decoding = 'async';
-        img.draggable = false;
-
-        card.appendChild(img);
-
-        // Click to open lightbox
-        card.addEventListener('click', (e) => {
-            if (isDragging) return; // Ignore click if user was dragging
-            openLightbox(imgIndex);
-        });
-
-        return card;
-    }
-
-    /**
-     * Measure single cycle height and initialize scroll position.
-     */
-    function initScrollPosition() {
-        const set0 = track.querySelector('.gallery-set-0');
-        if (!set0) return;
-
-        oneSetHeight = set0.getBoundingClientRect().height;
-        if (oneSetHeight === 0) {
-            // If images are still rendering dimensions, re-try shortly
-            requestAnimationFrame(initScrollPosition);
-            return;
-        }
-
-        // Start in the middle of Set 1 for seamless scrolling in both directions
-        viewport.scrollTop = oneSetHeight;
-
-        // Reveal the viewport
-        viewport.classList.add('loaded');
-        loader.classList.add('hidden');
-
-        updateDepthEffects();
-    }
-
-    /**
-     * Infinite scroll boundary check (seamless loop with zero visual jump).
-     */
-    function handleInfiniteLoop() {
-        if (isResettingScroll || oneSetHeight <= 0) return;
-
-        const currentScroll = viewport.scrollTop;
-
-        // If user scrolls up near Set 0, jump forward by oneSetHeight into Set 1
-        if (currentScroll < oneSetHeight * 0.3) {
-            isResettingScroll = true;
-            viewport.scrollTop += oneSetHeight;
-            isResettingScroll = false;
-        }
-        // If user scrolls down past Set 1 into Set 2, jump back by oneSetHeight into Set 1
-        else if (currentScroll >= oneSetHeight * 1.7) {
-            isResettingScroll = true;
-            viewport.scrollTop -= oneSetHeight;
-            isResettingScroll = false;
-        }
-    }
-
-    /**
-     * Dynamic depth & focus effect: rows near center get full presence,
-     * rows further away subtly scale and soften.
-     */
-    let ticking = false;
-    function updateDepthEffects() {
-        const viewportHeight = viewport.clientHeight;
-        const viewportCenter = viewportHeight / 2;
-        const rows = track.querySelectorAll('.gallery-row');
-
-        rows.forEach(row => {
-            const rect = row.getBoundingClientRect();
-            const rowCenter = rect.top + rect.height / 2;
-            const distFromCenter = Math.abs(rowCenter - viewportCenter);
-            const normalizedDist = Math.min(distFromCenter / (viewportHeight * 0.65), 1);
-
-            // Subtle scale factor between 0.95 and 1.0
-            const scale = 1 - (normalizedDist * 0.05);
-            // Subtle opacity factor between 0.88 and 1.0
-            const opacity = 1 - (normalizedDist * 0.12);
-
-            row.style.transform = `scale(${scale.toFixed(4)})`;
-            row.style.opacity = opacity.toFixed(3);
-        });
-    }
-
-    function onScroll() {
-        handleInfiniteLoop();
-
-        if (!ticking) {
-            requestAnimationFrame(() => {
-                updateDepthEffects();
-                ticking = false;
+                this.track.appendChild(card);
+                this.cardElements.push(card);
             });
-            ticking = true;
+        }
+
+        updateSpacing() {
+            if (this.cardElements.length > 0) {
+                const rect = this.cardElements[0].getBoundingClientRect();
+                const cardW = rect.width || (this.viewport.clientHeight * 0.84 * (9 / 13));
+                // Card spacing is ~74% of card width for ideal overlap like the reference
+                this.spacing = Math.max(140, cardW * 0.74);
+            }
+        }
+
+        initEvents() {
+            // Touch Events (Mobile priority)
+            this.viewport.addEventListener('touchstart', (e) => {
+                if (e.touches.length !== 1) return;
+                this.isDragging = true;
+                this.hasDragged = false;
+                this.isGestureDecided = false;
+                this.isHorizontalSwipe = false;
+                this.velocity = 0;
+                this.startX = e.touches[0].clientX;
+                this.startY = e.touches[0].clientY;
+                this.lastX = this.startX;
+                this.lastTime = performance.now();
+            }, { passive: true });
+
+            this.viewport.addEventListener('touchmove', (e) => {
+                if (!this.isDragging) return;
+                const curX = e.touches[0].clientX;
+                const curY = e.touches[0].clientY;
+                const diffX = curX - this.startX;
+                const diffY = curY - this.startY;
+
+                if (!this.isGestureDecided) {
+                    if (Math.abs(diffX) > 7 || Math.abs(diffY) > 7) {
+                        this.isGestureDecided = true;
+                        this.isHorizontalSwipe = Math.abs(diffX) >= Math.abs(diffY);
+                    }
+                }
+
+                if (this.isHorizontalSwipe) {
+                    if (e.cancelable) e.preventDefault();
+                    this.hasDragged = true;
+
+                    const dx = curX - this.lastX;
+                    const now = performance.now();
+                    const dt = now - this.lastTime;
+
+                    if (dt > 0) {
+                        this.velocity = -(dx / this.spacing) * (16 / Math.max(dt, 8));
+                    }
+
+                    this.targetPos -= dx / this.spacing;
+                    this.pos = this.targetPos; // Direct tracking during drag
+                    this.lastX = curX;
+                    this.lastTime = now;
+                }
+            }, { passive: false });
+
+            const onTouchEnd = () => {
+                if (!this.isDragging) return;
+                this.isDragging = false;
+                // Clamp velocity
+                this.velocity = Math.max(-0.35, Math.min(0.35, this.velocity));
+                setTimeout(() => { this.hasDragged = false; }, 60);
+            };
+
+            this.viewport.addEventListener('touchend', onTouchEnd, { passive: true });
+            this.viewport.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
+            // Mouse Events (Desktop drag)
+            this.viewport.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                this.isDragging = true;
+                this.hasDragged = false;
+                this.velocity = 0;
+                this.startX = e.clientX;
+                this.lastX = e.clientX;
+                this.lastTime = performance.now();
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!this.isDragging) return;
+                const curX = e.clientX;
+                const dx = curX - this.lastX;
+
+                if (Math.abs(curX - this.startX) > 4) {
+                    this.hasDragged = true;
+                }
+
+                const now = performance.now();
+                const dt = now - this.lastTime;
+
+                if (dt > 0) {
+                    this.velocity = -(dx / this.spacing) * (16 / Math.max(dt, 8));
+                }
+
+                this.targetPos -= dx / this.spacing;
+                this.pos = this.targetPos;
+                this.lastX = curX;
+                this.lastTime = now;
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (this.isDragging) {
+                    this.isDragging = false;
+                    this.velocity = Math.max(-0.35, Math.min(0.35, this.velocity));
+                    setTimeout(() => { this.hasDragged = false; }, 60);
+                }
+            });
+
+            // Wheel / Trackpad horizontal scroll support
+            this.viewport.addEventListener('wheel', (e) => {
+                const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+                if (Math.abs(delta) > 2) {
+                    this.targetPos += (delta * 0.0018);
+                    this.velocity = 0;
+                }
+            }, { passive: true });
+        }
+
+        render() {
+            // Physics / Friction update
+            if (!this.isDragging) {
+                this.targetPos += this.velocity;
+                this.velocity *= 0.90; // Inertia friction
+
+                if (Math.abs(this.velocity) < 0.001) {
+                    this.velocity = 0;
+                    // Gentle spring snap to nearest centered item
+                    this.targetPos += (Math.round(this.targetPos) - this.targetPos) * 0.12;
+                }
+
+                // Smooth spring interpolation
+                this.pos += (this.targetPos - this.pos) * 0.18;
+            }
+
+            const N = this.total;
+
+            for (let i = 0; i < N; i++) {
+                // Continuous wrapped offset relative to current position in range [-N/2, +N/2]
+                let offset = (i - (this.pos % N) + N * 1.5) % N - (N / 2);
+
+                const x = offset * this.spacing;
+                const absOffset = Math.abs(offset);
+
+                // Scale: Center = 1.08, side at absOffset 1 = ~0.90, further away = ~0.76
+                const scale = Math.max(0.72, 1.08 - Math.min(absOffset, 2) * 0.18);
+
+                // Z-Index: Center card is topmost (50), sides layer under (30..10)
+                const zIndex = Math.round(50 - Math.min(absOffset, 3) * 12);
+
+                // Opacity: Center and sides fully visible, smooth fade for cards further out
+                let opacity = 1;
+                if (absOffset > 1.4) {
+                    opacity = Math.max(0, 1 - (absOffset - 1.4) * 2.2);
+                }
+
+                const card = this.cardElements[i];
+                if (opacity <= 0.001) {
+                    card.style.visibility = 'hidden';
+                } else {
+                    card.style.visibility = 'visible';
+                    card.style.opacity = opacity.toFixed(3);
+                    card.style.zIndex = zIndex;
+                    card.style.transform = `translate3d(calc(-50% + ${x.toFixed(2)}px), -50%, 0) scale(${scale.toFixed(4)})`;
+                }
+            }
         }
     }
 
-    viewport.addEventListener('scroll', onScroll, { passive: true });
+    // ===== Lightbox Implementation =====
+    function openLightbox(src, rowIdx, rowImages) {
+        currentLightboxIdx = ALL_IMAGES.indexOf(src);
+        if (currentLightboxIdx === -1) currentLightboxIdx = 0;
 
-    // Handle window resize: recalculate setHeight
-    window.addEventListener('resize', () => {
-        const set0 = track.querySelector('.gallery-set-0');
-        if (set0) {
-            oneSetHeight = set0.getBoundingClientRect().height;
-            updateDepthEffects();
-        }
-    });
-
-    // ===== Desktop Drag-to-Scroll Support for fluid feel =====
-    let isMouseDown = false;
-    let isDragging = false;
-    let startY = 0;
-    let scrollStart = 0;
-    let dragDistance = 0;
-
-    viewport.addEventListener('mousedown', (e) => {
-        isMouseDown = true;
-        isDragging = false;
-        startY = e.pageY;
-        scrollStart = viewport.scrollTop;
-        dragDistance = 0;
-        viewport.style.cursor = 'grabbing';
-        viewport.style.userSelect = 'none';
-    });
-
-    window.addEventListener('mousemove', (e) => {
-        if (!isMouseDown) return;
-        const deltaY = e.pageY - startY;
-        dragDistance += Math.abs(deltaY);
-        if (dragDistance > 6) {
-            isDragging = true;
-        }
-        viewport.scrollTop = scrollStart - deltaY;
-    });
-
-    window.addEventListener('mouseup', () => {
-        if (isMouseDown) {
-            isMouseDown = false;
-            viewport.style.cursor = '';
-            viewport.style.userSelect = '';
-            setTimeout(() => { isDragging = false; }, 50);
-        }
-    });
-
-    // ===== Lightbox Functions =====
-    function openLightbox(index) {
-        currentLightboxIdx = index;
-        lightboxImg.src = allImages[index];
-        lightboxImg.alt = `Hauspire Luxury Design Portfolio - Photo ${index + 1}`;
+        lightboxImg.src = ALL_IMAGES[currentLightboxIdx];
+        lightboxImg.alt = `Hauspire Luxury Design Studio - Image ${currentLightboxIdx + 1}`;
 
         requestAnimationFrame(() => {
             lightbox.classList.add('active');
         });
 
         document.body.style.overflow = 'hidden';
-        preloadAdjacent(index);
+        preloadAdjacent(currentLightboxIdx);
     }
 
     function closeLightbox() {
@@ -312,21 +291,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function navigateLightbox(direction) {
-        if (currentLightboxIdx < 0 || allImages.length === 0) return;
-        // Infinite cycle inside lightbox as well
-        currentLightboxIdx = (currentLightboxIdx + direction + allImages.length) % allImages.length;
-        lightboxImg.src = allImages[currentLightboxIdx];
-        lightboxImg.alt = `Hauspire Luxury Design Portfolio - Photo ${currentLightboxIdx + 1}`;
+        if (currentLightboxIdx < 0 || ALL_IMAGES.length === 0) return;
+        currentLightboxIdx = (currentLightboxIdx + direction + ALL_IMAGES.length) % ALL_IMAGES.length;
+        lightboxImg.src = ALL_IMAGES[currentLightboxIdx];
+        lightboxImg.alt = `Hauspire Luxury Design Studio - Image ${currentLightboxIdx + 1}`;
         preloadAdjacent(currentLightboxIdx);
     }
 
     function preloadAdjacent(index) {
         [-1, 1].forEach(offset => {
-            const i = (index + offset + allImages.length) % allImages.length;
+            const i = (index + offset + ALL_IMAGES.length) % ALL_IMAGES.length;
             const link = document.createElement('link');
             link.rel = 'prefetch';
             link.as = 'image';
-            link.href = allImages[i];
+            link.href = ALL_IMAGES[i];
             document.head.appendChild(link);
         });
     }
@@ -344,17 +322,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('keydown', (e) => {
         if (!lightbox.classList.contains('active')) return;
-
-        if (e.key === 'Escape') {
-            closeLightbox();
-        } else if (e.key === 'ArrowLeft') {
-            navigateLightbox(-1);
-        } else if (e.key === 'ArrowRight') {
-            navigateLightbox(1);
-        }
+        if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowLeft') navigateLightbox(-1);
+        if (e.key === 'ArrowRight') navigateLightbox(1);
     });
 
-    // Touch Swipe inside Lightbox
+    // Lightbox Mobile Touch Swipe
     let lbTouchStartX = 0;
     let lbTouchStartY = 0;
 
@@ -379,31 +352,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, { passive: true });
 
-    // ===== Initialize =====
-    async function init() {
-        const images = await discoverImages();
-        allImages = images;
+    // ===== Initialize Both Carousels =====
+    const carousel1 = new InfiniteCarousel({
+        viewport: document.getElementById('carousel-viewport-1'),
+        track: document.getElementById('carousel-track-1'),
+        images: ROW_1_IMAGES,
+        onCardClick: openLightbox
+    });
 
-        if (images.length === 0) {
-            loader.textContent = 'No images found in images/ directory.';
-            return;
-        }
+    const carousel2 = new InfiniteCarousel({
+        viewport: document.getElementById('carousel-viewport-2'),
+        track: document.getElementById('carousel-track-2'),
+        images: ROW_2_IMAGES,
+        onCardClick: openLightbox
+    });
 
-        buildGallery(images);
+    // Handle Resize
+    window.addEventListener('resize', () => {
+        carousel1.updateSpacing();
+        carousel2.updateSpacing();
+    });
 
-        // Wait for first image to load or DOM paint to accurately measure heights
-        const firstImg = track.querySelector('img');
-        if (firstImg) {
-            if (firstImg.complete) {
-                initScrollPosition();
-            } else {
-                firstImg.addEventListener('load', initScrollPosition);
-                firstImg.addEventListener('error', initScrollPosition);
-            }
-        } else {
-            initScrollPosition();
-        }
+    // Continuous Animation Loop (60fps)
+    function loop() {
+        carousel1.render();
+        carousel2.render();
+        requestAnimationFrame(loop);
     }
+    requestAnimationFrame(loop);
 
-    init();
+    // Reveal UI once loaded
+    requestAnimationFrame(() => {
+        carousel1.updateSpacing();
+        carousel2.updateSpacing();
+        container.classList.add('loaded');
+        loader.classList.add('hidden');
+    });
 });

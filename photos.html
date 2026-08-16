@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HAUSPIRE LUXURY DESIGN STUDIO | Visual Stories, Anytime</title>
     <meta name="description" content="Official portfolio of HAUSPIRE LUXURY DESIGN STUDIO. Visual Stories, Anytime.">
     <meta name="theme-color" content="#0a0a0a">
@@ -46,10 +46,20 @@
     </header>
 
     <main class="gallery-main">
-        <div id="gallery-viewport" class="gallery-viewport">
-            <div id="gallery-track" class="gallery-track">
-                <!-- 3-card rows will be dynamically injected here -->
-            </div>
+        <div class="gallery-dual-container">
+            <!-- Row 1: Photos 1 to 6 -->
+            <section class="carousel-section" id="section-row-1" aria-label="Portfolio Carousel Row 1 - Photos 1 to 6">
+                <div class="carousel-viewport" id="carousel-viewport-1">
+                    <div class="carousel-track" id="carousel-track-1"></div>
+                </div>
+            </section>
+
+            <!-- Row 2: Photos 7 to 14 -->
+            <section class="carousel-section" id="section-row-2" aria-label="Portfolio Carousel Row 2 - Photos 7 to 14">
+                <div class="carousel-viewport" id="carousel-viewport-2">
+                    <div class="carousel-track" id="carousel-track-2"></div>
+                </div>
+            </section>
         </div>
         <div id="loader" class="gallery-loader">Loading gallery...</div>
     </main>

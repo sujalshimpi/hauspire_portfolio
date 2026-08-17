@@ -112,7 +112,8 @@ body {
 }
 
 .nav-btn,
-.contact-btn {
+.contact-btn,
+.fullscreen-btn {
     text-decoration: none;
     color: var(--text-color);
     width: 38px;
@@ -128,10 +129,13 @@ body {
     transition: all var(--transition-speed) ease;
     cursor: pointer;
     flex-shrink: 0;
+    padding: 0;
+    outline: none;
 }
 
 .nav-btn:hover,
-.contact-btn:hover {
+.contact-btn:hover,
+.fullscreen-btn:hover {
     background-color: rgba(255, 255, 255, 0.16);
     border-color: rgba(255, 255, 255, 0.8);
     transform: translateY(-1px);
@@ -139,8 +143,22 @@ body {
 }
 
 .nav-btn:active,
-.contact-btn:active {
+.contact-btn:active,
+.fullscreen-btn:active {
     transform: scale(0.95);
+}
+
+/* Fullscreen toggle icon states */
+.fullscreen-btn .fullscreen-icon-exit {
+    display: none;
+}
+
+.fullscreen-btn.is-fullscreen .fullscreen-icon-enter {
+    display: none;
+}
+
+.fullscreen-btn.is-fullscreen .fullscreen-icon-exit {
+    display: block;
 }
 
 /* ===== Dual Carousel Gallery Main ===== */
@@ -405,6 +423,10 @@ body {
     .header-nav {
         gap: 0.4rem;
         flex-shrink: 0;
+    }
+
+    .fullscreen-btn {
+        display: none !important;
     }
 
     .nav-btn,

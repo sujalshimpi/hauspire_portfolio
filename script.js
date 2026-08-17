@@ -126,4 +126,62 @@ document.addEventListener('DOMContentLoaded', () => {
             closeOverlay();
         }
     });
+
+    // ===== Desktop Fullscreen Controller =====
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+
+    function isFullscreenActive() {
+        return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+    }
+
+    function updateFullscreenUI() {
+        if (!fullscreenBtn) return;
+        if (isFullscreenActive()) {
+            fullscreenBtn.classList.add('is-fullscreen');
+            fullscreenBtn.setAttribute('title', 'Exit Fullscreen (ESC)');
+            fullscreenBtn.setAttribute('aria-label', 'Exit Fullscreen');
+        } else {
+            fullscreenBtn.classList.remove('is-fullscreen');
+            fullscreenBtn.setAttribute('title', 'Enter Fullscreen');
+            fullscreenBtn.setAttribute('aria-label', 'Enter Fullscreen');
+        }
+    }
+
+    function toggleFullscreen() {
+        if (!isFullscreenActive()) {
+            const docEl = document.documentElement;
+            if (docEl.requestFullscreen) {
+                docEl.requestFullscreen().catch(() => {});
+            } else if (docEl.webkitRequestFullscreen) {
+                docEl.webkitRequestFullscreen();
+            } else if (docEl.mozRequestFullScreen) {
+                docEl.mozRequestFullScreen();
+            } else if (docEl.msRequestFullscreen) {
+                docEl.msRequestFullscreen();
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        }
+    }
+
+    if (fullscreenBtn) {
+        fullscreenBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleFullscreen();
+        });
+    }
+
+    // Listen for all vendor fullscreen change events
+    ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+        document.addEventListener(evt, updateFullscreenUI);
+    });
 });

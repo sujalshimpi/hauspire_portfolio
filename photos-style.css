@@ -47,9 +47,9 @@ body {
     width: 100%;
     max-width: 100vw;
     z-index: 100;
-    background: linear-gradient(to bottom, rgba(10, 10, 10, 0.94) 0%, rgba(10, 10, 10, 0.6) 60%, transparent 100%);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     pointer-events: none;
     padding: 0 2rem;
     height: var(--header-height);

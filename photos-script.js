@@ -1,7 +1,7 @@
 /**
  * Hauspire Luxury Design Studio — Dual Horizontal Infinite Carousels
- * Row 1: Photos 1 to 6
- * Row 2: Photos 7 to 14
+ * Row 1: Photos 1 to 6 (Continuous Auto-Revolving Right -> Left)
+ * Row 2: Photos 7 to 14 (Continuous Auto-Revolving Right -> Left, Independent Rate)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -37,15 +37,16 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentLightboxIdx = -1;
 
     /**
-     * Circular Continuous Infinite Carousel Engine
+     * Circular Continuous Infinite Carousel Engine with Auto-Revolving
      */
     class InfiniteCarousel {
-        constructor({ viewport, track, images, onCardClick }) {
+        constructor({ viewport, track, images, onCardClick, autoSpeed = 0.16 }) {
             this.viewport = viewport;
             this.track = track;
             this.images = images;
             this.total = images.length;
             this.onCardClick = onCardClick;
+            this.autoSpeed = autoSpeed; // Continuous drift speed (cards/sec)
 
             this.pos = 0;          // Continuous floating-point position
             this.targetPos = 0;    // Target position for spring physics
@@ -59,6 +60,11 @@ document.addEventListener('DOMContentLoaded', () => {
             this.isHorizontalSwipe = false;
             this.isGestureDecided = false;
             this.spacing = 240;
+
+            // Auto-revolving state management
+            this.isUserInteracting = false;
+            this.autoResumeTimeout = null;
+            this.autoWeight = 1.0; // Smooth fade-in factor (0 to 1)
 
             this.cardElements = [];
             this.initCards();
@@ -80,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const img = document.createElement('img');
                 img.src = src;
                 img.alt = `Hauspire Luxury Design Studio - Portfolio Image`;
-                // Priority loading for initial visible cards (center and adjacent)
+                // Priority loading for initial visible cards
                 if (idx === 0 || idx === 1 || idx === this.total - 1) {
                     img.loading = 'eager';
                     img.setAttribute('fetchpriority', 'high');
@@ -91,7 +97,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 img.decoding = 'async';
                 img.draggable = false;
 
-                // Pre-decode adjacent images for zero-lag swipes
                 if (img.decode) {
                     img.decode().catch(() => {});
                 }
@@ -113,8 +118,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const rect = this.cardElements[0].getBoundingClientRect();
                 const cardW = rect.width || (this.viewport.clientHeight * 0.84 * (9 / 13));
                 this.spacing = Math.max(140, cardW * 0.74);
-                this.lastPos = -9999; // force redraw on resize
+                this.lastPos = -9999; // Force redraw
             }
+        }
+
+        scheduleAutoResume() {
+            if (this.autoResumeTimeout) {
+                clearTimeout(this.autoResumeTimeout);
+            }
+            this.autoResumeTimeout = setTimeout(() => {
+                this.isUserInteracting = false;
+            }, 1800);
         }
 
         initEvents() {
@@ -126,6 +140,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.isGestureDecided = false;
                 this.isHorizontalSwipe = false;
                 this.velocity = 0;
+                this.isUserInteracting = true;
+                this.autoWeight = 0;
+                if (this.autoResumeTimeout) clearTimeout(this.autoResumeTimeout);
+
                 this.startX = e.touches[0].clientX;
                 this.startY = e.touches[0].clientY;
                 this.lastX = this.startX;
@@ -169,6 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!this.isDragging) return;
                 this.isDragging = false;
                 this.velocity = Math.max(-0.35, Math.min(0.35, this.velocity));
+                this.scheduleAutoResume();
                 setTimeout(() => { this.hasDragged = false; }, 60);
             };
 
@@ -181,6 +200,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.isDragging = true;
                 this.hasDragged = false;
                 this.velocity = 0;
+                this.isUserInteracting = true;
+                this.autoWeight = 0;
+                if (this.autoResumeTimeout) clearTimeout(this.autoResumeTimeout);
+
                 this.startX = e.clientX;
                 this.lastX = e.clientX;
                 this.lastTime = performance.now();
@@ -212,6 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (this.isDragging) {
                     this.isDragging = false;
                     this.velocity = Math.max(-0.35, Math.min(0.35, this.velocity));
+                    this.scheduleAutoResume();
                     setTimeout(() => { this.hasDragged = false; }, 60);
                 }
             });
@@ -220,30 +244,40 @@ document.addEventListener('DOMContentLoaded', () => {
             this.viewport.addEventListener('wheel', (e) => {
                 const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
                 if (Math.abs(delta) > 2) {
+                    this.isUserInteracting = true;
+                    this.autoWeight = 0;
                     this.targetPos += (delta * 0.0018);
                     this.velocity = 0;
+                    this.scheduleAutoResume();
                 }
             }, { passive: true });
         }
 
-        render() {
-            // Physics / Friction update
+        render(dt) {
+            // Automatic continuous revolving + Inertia Physics
             if (!this.isDragging) {
-                this.targetPos += this.velocity;
-                this.velocity *= 0.90; // Inertia friction
-
-                if (Math.abs(this.velocity) < 0.0008) {
+                if (Math.abs(this.velocity) > 0.0008) {
+                    // Manual fling momentum dissipation
+                    this.targetPos += this.velocity;
+                    this.velocity *= 0.90;
+                    this.pos += (this.targetPos - this.pos) * 0.20;
+                } else {
                     this.velocity = 0;
-                    // Gentle spring snap to nearest centered item
-                    this.targetPos += (Math.round(this.targetPos) - this.targetPos) * 0.12;
+                    if (!this.isUserInteracting) {
+                        // Smoothly ramp up auto-revolving
+                        this.autoWeight += (1 - this.autoWeight) * Math.min(dt * 2.5, 1);
+                        const drift = this.autoSpeed * this.autoWeight * dt;
+                        this.targetPos += drift;
+                        this.pos += drift;
+                    } else {
+                        // Smooth spring interpolation while settling
+                        this.pos += (this.targetPos - this.pos) * 0.18;
+                    }
                 }
-
-                // Smooth spring interpolation
-                this.pos += (this.targetPos - this.pos) * 0.20;
             }
 
-            // Optimization: skip DOM writes if change is sub-threshold
-            if (Math.abs(this.pos - this.lastPos) < 0.0001 && !this.isDragging && this.velocity === 0) {
+            // Sub-threshold skip optimization
+            if (Math.abs(this.pos - this.lastPos) < 0.00008) {
                 return;
             }
             this.lastPos = this.pos;
@@ -251,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const N = this.total;
 
             for (let i = 0; i < N; i++) {
-                // Continuous wrapped offset relative to current position in range [-N/2, +N/2]
+                // Continuous modular coordinate wrapping for infinite 360-degree cycle
                 let offset = (i - (this.pos % N) + N * 1.5) % N - (N / 2);
 
                 const x = offset * this.spacing;
@@ -370,19 +404,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, { passive: true });
 
-    // ===== Initialize Both Carousels =====
+    // ===== Initialize Both Carousels with Elegant Auto-Revolving Speeds =====
     const carousel1 = new InfiniteCarousel({
         viewport: document.getElementById('carousel-viewport-1'),
         track: document.getElementById('carousel-track-1'),
         images: ROW_1_IMAGES,
-        onCardClick: openLightbox
+        onCardClick: openLightbox,
+        autoSpeed: 0.16 // Slow, continuous, cinematic glide for Row 1
     });
 
     const carousel2 = new InfiniteCarousel({
         viewport: document.getElementById('carousel-viewport-2'),
         track: document.getElementById('carousel-track-2'),
         images: ROW_2_IMAGES,
-        onCardClick: openLightbox
+        onCardClick: openLightbox,
+        autoSpeed: 0.13 // Independent harmonious glide for Row 2
     });
 
     // Handle Resize
@@ -391,10 +427,15 @@ document.addEventListener('DOMContentLoaded', () => {
         carousel2.updateSpacing();
     });
 
-    // Continuous Animation Loop (60fps)
-    function loop() {
-        carousel1.render();
-        carousel2.render();
+    // Delta-Time Animation Loop (Smooth 60/90/120fps)
+    let lastFrameTime = performance.now();
+    function loop(now) {
+        const dt = Math.min((now - lastFrameTime) / 1000, 0.1); // in seconds, clamped
+        lastFrameTime = now;
+
+        carousel1.render(dt);
+        carousel2.render(dt);
+
         requestAnimationFrame(loop);
     }
     requestAnimationFrame(loop);

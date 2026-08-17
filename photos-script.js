@@ -404,13 +404,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, { passive: true });
 
-    // ===== Initialize Both Carousels with Elegant Auto-Revolving Speeds =====
+    // ===== Initialize Both Carousels with Identical Auto-Revolving Speed =====
+    const UNIFORM_SPEED = 0.16; // Exact matching speed for both rows
+
     const carousel1 = new InfiniteCarousel({
         viewport: document.getElementById('carousel-viewport-1'),
         track: document.getElementById('carousel-track-1'),
         images: ROW_1_IMAGES,
         onCardClick: openLightbox,
-        autoSpeed: 0.16 // Slow, continuous, cinematic glide for Row 1
+        autoSpeed: UNIFORM_SPEED
     });
 
     const carousel2 = new InfiniteCarousel({
@@ -418,7 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
         track: document.getElementById('carousel-track-2'),
         images: ROW_2_IMAGES,
         onCardClick: openLightbox,
-        autoSpeed: 0.13 // Independent harmonious glide for Row 2
+        autoSpeed: UNIFORM_SPEED
     });
 
     // Handle Resize

@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const overlayVideo = document.getElementById('overlay-video');
     const closeBtn = document.getElementById('close-overlay');
 
-    const TOTAL_VIDEOS = 7; // 7 videos in vidsss/ folder (1.mp4 to 7.mp4)
+    const TOTAL_VIDEOS = 9; // 9 videos in vidsss/ folder (1.mp4 to 9.mp4)
     const VIDEO_PATH = 'vidsss/';
 
     // ===== IntersectionObserver: only play videos in viewport =====
